@@ -3,8 +3,10 @@
   "version": "1.2.1",
   "description": "Node.js easy to get Youtube results with playlist by provided keywords, no Login or API key required!",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "NODE_ENV=production node api.js",
+    "dev": "nodemon api.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,11 @@
   },
   "homepage": "https://github.com/damonwonghv/youtube-search-api#readme",
   "dependencies": {
-    "axios": "^0.21.0"
+    "axios": "^0.21.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }

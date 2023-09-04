@@ -42,7 +42,7 @@ Options added, this version only support return result type, e.g. `[{type:'video
 ## NextPage (Promise)
 
 ```node
-youtubesearchapi.NextPage(<nextPage from GetListByKeywords result>,[playlist boolean],[limit number])
+youtubesearchapi.nextPage(<nextPage from GetListByKeywords result>,[playlist boolean],[limit number])
 ```
 
 NextPage Result
@@ -90,7 +90,7 @@ youtubesearchapi.GetChannelById(<channel ID>)
 Channel Data Results
 
 ```node
-[[{ title: "[title]", content: [Object] }]];
+[[{ title: "[title]", banner: [array], description: string, content: [Object] }]];
 ```
 
 Will return tabs in array format.
@@ -108,21 +108,169 @@ Get Video Details Results
 
 ```node
 {
-  title: "",
-  isLive: [true/false],
-  channel: ",
-  description: ",
-  suggestion: [
-    {id: "",
-      type: 'video',
-      thumbnail: [],
-      title: "",
-      channelTitle: "",
-      shortBylineText: "",
-      length: [Object],
-      isLive: [true/false]
-    } ...
-  ]
+ id: string
+  title: string
+  views: string
+  likes: string
+  publishedAt: string
+  description: string
+  channel: {
+    id: string
+    title: string
+    url: string
+    subscriber: string
+    avatar: [{
+      url: string
+      width: number
+      height: number
+    }]
+  },
+  player: {
+    id: string
+    title: string
+    thumbnails: [{
+      url: string
+      width: number
+      height: number
+    }]
+    shortDescription: string
+    length: string
+    keywords: string[]
+    category: string
+    publishDate: string
+    embed: {
+      iframeUrl: string
+      width: number
+      height: number
+    },
+    media: [{
+      url: string
+      hls: any
+      fileType: string
+      type: string
+      label: string
+      width: number
+      height: number
+    }],
+    formats: [{
+      itag: number
+      mimeType: string
+      bitrate: number
+      width: number
+      height: number
+      lastModified: string
+      quality: string
+      xtags: string
+      fps: number
+      qualityLabel: string
+      projectionType: string
+      audioQuality: string
+      approxDurationMs: string
+      audioSampleRate: string
+      audioChannels: number
+      signatureCipher: string
+    }]
+    adaptiveFormats: [{
+      itag: number
+      mimeType: string
+      bitrate: number
+      width?: number
+      height?: number
+      initRange: {
+        start: string
+        end: string
+      }
+      indexRange: {
+        start: string
+        end: string
+      }
+      lastModified: string
+      contentLength: string
+      quality: string
+      fps?: number
+      qualityLabel?: string
+      projectionType: string
+      averageBitrate: number
+      colorInfo?: {
+        primaries: string
+        transferCharacteristics: string
+        matrixCoefficients: string
+      }
+      approxDurationMs: string
+      signatureCipher: string
+      highReplication?: boolean
+      audioQuality?: string
+      audioSampleRate?: string
+      audioChannels?: number
+      loudnessDb?: number
+    }]
+  },
+  suggestion: [{
+      id: string
+      type: string
+      thumbnails: [{
+        url: string
+        width: number
+        height: number
+      }]
+      title: string
+      channel: {
+        id: string
+        title: string
+        url: string
+        subscriber: string
+        avatar: [{
+          url: string
+          width: number
+          height: number
+        }]
+      },
+      length: string
+      views: string
+      publishedAt: string
+      badges: string[]
+      isLive: boolean
+  }],
+  suggestionContext: {
+    nextPageToken: string
+    nextPageContext: {
+      context: Context
+      continuation: string
+    },
+  },
+  isLive: boolean,
+  comments: [{
+    text: string
+    items: [{
+      channel: Channel3
+      isOwner: boolean
+      content: string
+      publishedAt: string
+      likes?: string
+      replyCount?: number
+      repliesToken?: string
+      replies?: [{
+        channel: {
+          id: string
+          title: string
+          url: string
+          avatar: [{
+            url: string
+            width: number
+            height: number
+          }]
+          verified: boolean
+          artist: boolean
+        },
+        isOwner: boolean
+        content: string
+        publishedAt: string
+        likes?: string
+      }]
+    }]
+    nextPage: {...}
+  }],
+  commentContext: {...},
 }
 ```
 

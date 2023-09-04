@@ -1,18 +1,17 @@
-const youtube = require("../index");
+import * as youtube from "../api/parser.js"
 
-youtube
-  .GetListByKeyword("JSDeveloper", true, 2, [{ type: "video" }])
+youtube.GetListByKeyword("JSDeveloper", true, 2, [{ type: "video" }])
   .then((res) => {
     console.log("Page1");
     console.log(res);
 
     youtube
-      .NextPage(res.nextPage, true, 2)
+      .nextPage(res.nextPage, true, 2)
       .then((result) => {
         console.log("Page2");
         console.log(result);
         youtube
-          .NextPage(result.nextPage, true, 2)
+          .nextPage(result.nextPage, true, 2)
           .then((result1) => {
             console.log("Page3");
             console.log(result1);
@@ -29,8 +28,7 @@ youtube
     console.log(err);
   });
 
-youtube
-  .GetPlaylistData("RDCLAK5uy_lGZNsVQescoTzcvJkcEhSjpyn_98D4lq0")
+youtube.GetPlaylistData("RDCLAK5uy_lGZNsVQescoTzcvJkcEhSjpyn_98D4lq0")
   .then((res) => {
     console.log("Playlist results");
     console.log(res);
@@ -39,8 +37,7 @@ youtube
     console.log(err);
   });
 
-youtube
-  .GetSuggestData()
+youtube.GetSuggestData()
   .then((res) => {
     console.log(res);
   })
@@ -48,8 +45,7 @@ youtube
     console.log(err);
   });
 
-youtube
-  .GetChannelById(`UCj-Xm8j6WBgKY8OG7s9r2vQ`)
+youtube.GetChannelById(`@RailCowGirl`)
   .then((res) => {
     console.log(res);
   })
@@ -57,8 +53,7 @@ youtube
     console.log(err);
   });
 
-youtube
-  .GetVideoDetails("cC2UqBuFAEY")
+youtube.GetVideoDetails("cC2UqBuFAEY")
   .then((result) => {
     console.log(result);
   })
@@ -66,8 +61,7 @@ youtube
     console.error(err);
   });
 
-youtube
-  .GetShortVideo()
+youtube.GetShortVideo()
   .then((shortVideoResult) => {
     console.log(shortVideoResult);
   })
