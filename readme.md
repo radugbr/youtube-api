@@ -1,12 +1,45 @@
 # Youtube Search API
 
-Youtube Search API is an API for getting Youtube search results.
+This is fork of Youtube Search API.
+
+You can test it via opening http://localhost:3000
+
+api routes are
+/ = Home Page
+
+/autocomplete = Search suggestion for input keyword
+
+/channel/:id = Get Channel by id
+
+/playlist/:id = Playlist by id
+
+/search = Search results page
+
+/watch/:id = Video Details page with comments and player embed, media files
+
+/watch/:id/comments = Load more comments with replies
+
+/watch/:id/suggestions = Load more Suggestions
+
+/trending = Trending List Page 
 
 ## Installation
 
 ```bash
-npm install youtube-search-api
+npm install && npm run dev
 ```
+it will start express server on port 3000 so access it http://localhost:3000
+
+## Demo
+you can check working example on netlify by follow this link
+
+https://cheetube.netlify.app/
+
+It use ReactJS , ViteJS, Vite-Express, Express, TailwindCSS, React-icons
+
+## Api Access
+
+https://cheetube.netlify.app/api/
 
 ## Usage (import)
 
@@ -329,7 +362,6 @@ Please make sure to update tests as appropriate.
 
 1. Web app with show case
 2. Typescript version (Contributor is working on)
-3. Support front-end (Vue, React) (Still on going ...)
 
 ## Bug fixed
 
