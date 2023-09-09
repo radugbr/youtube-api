@@ -5,12 +5,12 @@ import {
   GetListByKeyword,
   GetChannelById,
   GetVideoDetails,
-  GetSuggestData,
-  getTrending,
   getAutoCompleteSearch,
   getMoreComments,
   getMoreSuggestions,
-  GetPlaylistData
+  GetPlaylistData,
+  getFeed,
+  GetHomeFeed
 } from "./api/parser.js";
 
 const port = process.env.PORT || 3000;
@@ -40,7 +40,7 @@ app.use(errorHandler);
  */
 app.get('/', async function (req, res, next) {
   try {
-    const recentUpdates = await GetSuggestData(30, [{ type: 'video' }]);
+    const recentUpdates = await GetHomeFeed();
     res.status(200).json(recentUpdates);
   } catch (error) {
     next(error)
@@ -162,12 +162,12 @@ app.get('/playlist/:id', async function (req, res, next) {
 /**
  * Menus
  */
-app.get('/trending', async function (req, res, next) {
+app.get('/:name', async function (req, res, next) {
 
   try {
     const name = req.params.name;
 
-    const contents = await getTrending();
+    const contents = await getFeed(name);
 
     res.status(200).json(contents);
 
