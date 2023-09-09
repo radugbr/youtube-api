@@ -1,4 +1,4 @@
-import shortVideoParser from "./shortVideoParser.js";
+import cardParser from "./cardParser.js";
 import videoRenderer from "./videoRenderer.js";
 
 export default function feedParser(json) {
@@ -20,50 +20,12 @@ export default function feedParser(json) {
                     thumbnails: json.thumbnail.thumbnails,
                 });
             } else if (x?.gridVideoRenderer) {
-                const json = x.gridVideoRenderer;
+                list.push(cardParser(x));
 
-                let artist = false;
-                if (
-                    json.ownerBadges &&
-                    json.ownerBadges.length > 0 &&
-                    json.ownerBadges[0].metadataBadgeRenderer &&
-                    ["OFFICIAL_ARTIST_BADGE", "BADGE_STYLE_TYPE_VERIFIED_ARTIST"]
-                        .includes(json.ownerBadges[0].metadataBadgeRenderer.style)
-                ) {
-                    artist = true;
-                }
-
-                let verified = false;
-                if (
-                    json.ownerBadges &&
-                    json.ownerBadges.length > 0 &&
-                    json.ownerBadges[0].metadataBadgeRenderer &&
-                    json.ownerBadges[0].metadataBadgeRenderer.style ===
-                    "BADGE_STYLE_TYPE_VERIFIED"
-                ) {
-                    verified = true;
-                }
-
-                const channelUrl = json.shortBylineText.runs[0].navigationEndpoint.commandMetadata.webCommandMetadata.url;
-
-                const channel = {
-                    id: channelUrl ? channelUrl?.replace('/@', '') : '',
-                    title: json.shortBylineText.runs?.map((x) => x.text).join(''),
-                    url: channelUrl ? channelUrl?.replace('/@', '/channel/') : '',
-                    verified,
-                    artist,
-                };
-
-                list.push({
-                    id: json.videoId,
-                    title: json.title?.simpleText,
-                    thumbnails: json.thumbnail?.thumbnails,
-                    publishedAt: json?.publishedTimeText?.simpleText,
-                    views: json?.shortViewCountText?.simpleText,
-                    channel,
-                });
-
-            } else if (x.gridChannelRenderer) {
+            } else if (x?.gridPlaylistRenderer) {
+                list.push(cardParser(x));
+                
+            } else if (x.gridChannelRenderer) { // Channel List Parser
                 const json = x.gridChannelRenderer;
 
                 let artist = false;
@@ -122,6 +84,7 @@ export default function feedParser(json) {
 
                 list.push({
                     id: json.videoId,
+                    type: "movie",
                     title: json.title?.runs?.map((x) => x.text).join(''),
                     length: json.lengthText?.simpleText,
                     category: json?.metadata?.simpleText,
@@ -142,7 +105,7 @@ export default function feedParser(json) {
 
             if (x.videoRenderer) {
                 list.push(videoRenderer(x.videoRenderer));
-            } 
+            }
 
         }) : ''
 
@@ -202,7 +165,7 @@ export default function feedParser(json) {
             title: playlist.title.simpleText,
             channel: {
                 id: channelUrl ? channelUrl?.replace('/', '') : '',
-                title: playlist.shortBylineText.runs.map((x) => x.text).join(''),
+                title: playlist?.shortBylineText?.runs?.map((x) => x.text).join(''),
                 url: channelUrl ? channelUrl?.replace('/@', '/channel/') : '',
                 verified,
                 artist,
@@ -213,7 +176,92 @@ export default function feedParser(json) {
             videoCount: playlist.videoCount,
         }
 
+    } else if (json?.horizontalCardListRenderer) {
+
+        const listItems = json.horizontalCardListRenderer.cards;
+
+        listItems.length ? listItems.map((x) => {
+
+            if (x.gameCardRenderer) {
+
+                const game = x.gameCardRenderer.game.gameDetailsRenderer;
+
+                list.push({
+                    type: "game",
+                    title: game?.title?.simpleText,
+                    url: game?.endpoint?.commandMetadata?.webCommandMetadata?.url,
+                    thumbnail: game?.boxArt?.thumbnails[0],
+                    views: game?.liveViewersText?.runs.map((x) => x.text).join(''),
+                    verified: Boolean(game?.isOfficialBoxArt),
+                });
+            } else if (x.videoCardRenderer) {
+                list.push(cardParser(x));
+            }
+
+        }) : ''
+
+    } else if (json?.gridRenderer) {
+        const listItems = json.gridRenderer.items;
+
+        listItems.length ? listItems.map((x) => {
+
+            if (x.gridVideoRenderer) {
+
+                list.push(cardParser(x));
+            } else if (x.videoCardRenderer) {
+                list.push(cardParser(x));
+            }
+
+        }) : ''
     }
 
     return list;
+}
+
+function gridVideoRenderer(json) {
+    if (!json?.videoId) {
+        return {};
+    }
+
+    let artist = false;
+    if (
+        json.ownerBadges &&
+        json.ownerBadges.length > 0 &&
+        json.ownerBadges[0].metadataBadgeRenderer &&
+        ["OFFICIAL_ARTIST_BADGE", "BADGE_STYLE_TYPE_VERIFIED_ARTIST"]
+            .includes(json.ownerBadges[0].metadataBadgeRenderer.style)
+    ) {
+        artist = true;
+    }
+
+    let verified = false;
+    if (
+        json.ownerBadges &&
+        json.ownerBadges.length > 0 &&
+        json.ownerBadges[0].metadataBadgeRenderer &&
+        json.ownerBadges[0].metadataBadgeRenderer.style ===
+        "BADGE_STYLE_TYPE_VERIFIED"
+    ) {
+        verified = true;
+    }
+
+    const channelUrl = json.shortBylineText.runs[0].navigationEndpoint.commandMetadata.webCommandMetadata.url;
+
+    const channel = {
+        id: channelUrl ? channelUrl?.replace('/@', '') : '',
+        title: json.shortBylineText.runs?.map((x) => x.text).join(''),
+        url: channelUrl ? channelUrl?.replace('/@', '/channel/') : '',
+        verified,
+        artist,
+    };
+
+    return {
+        id: json.videoId,
+        type: "video",
+        title: json.title?.simpleText,
+        thumbnails: json.thumbnail?.thumbnails,
+        publishedAt: json?.publishedTimeText?.simpleText,
+        views: json?.shortViewCountText?.simpleText,
+        channel,
+    };
 }

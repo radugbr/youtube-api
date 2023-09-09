@@ -1157,7 +1157,23 @@ export async function getFeed(name) {
         itemSectionContent.map((x) => {
 
             if (x.horizontalCardListRenderer) {
+
                 const horizontalCardListRenderer = x.horizontalCardListRenderer;
+
+                const cardHeader = horizontalCardListRenderer.header?.richListHeaderRenderer;
+
+                const title = cardHeader?.title?.simpleText || cardHeader?.title?.runs?.map((x) => x.text).join('')
+
+                const subtitle = cardHeader?.subtitle?.simpleText || cardHeader?.subtitle?.runs?.map((x) => x.text).join('');
+
+                const items = feedParser(x);
+
+                feedResults.push({
+                    title,
+                    subtitle,
+                    items
+                })
+
             } else if (x.shelfRenderer) {
 
                 const shelfRenderer = x.shelfRenderer;
