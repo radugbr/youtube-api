@@ -53,9 +53,11 @@ export default function feedParser(json) {
                 const channelUrl = json.navigationEndpoint.commandMetadata.webCommandMetadata.url;
 
                 const channel = {
-                    id: channelUrl ? channelUrl.replace('/', '') : '',
-                    title: json.title?.simpleText,
+                    id: json?.channelId,
+                    type: 'channel',
+                    title: json?.title?.simpleText,
                     url: channelUrl ? channelUrl?.replace('/@', '/channel/') : '',
+                    avatar: json?.thumbnail?.thumbnails,
                     videos: json?.videoCountText?.runs?.map((x) => x.text).join(''),
                     subscribers: json?.subscriberCountText?.simpleText,
                     verified,

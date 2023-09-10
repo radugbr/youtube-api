@@ -1095,7 +1095,50 @@ export async function getFeed(name) {
 
     const page = await GetYoutubeInitData(endpoint);
 
-    const contentHeader = await page.initData?.header?.c4TabbedHeaderRenderer;
+    const contentHeader = await page.initData?.header?.c4TabbedHeaderRenderer || page.initData?.header?.carouselHeaderRenderer;
+
+    let headerItems = {}
+
+    if (contentHeader?.contents) {
+
+        contentHeader.contents.map((x) => {
+
+            if (x.carouselItemRenderer) {
+                const carouselItems = x.carouselItemRenderer.carouselItems;
+
+                const promo = carouselItems.map((x) => {
+
+                    const promo = x.defaultPromoPanelRenderer;
+
+                    return {
+                        title: promo.title?.title?.runs?.map((x) => x.text).join(''),
+                        description: promo.description?.runs?.map((x) => x.text).join(''),
+                        url: promo?.navigationEndpoint?.commandMetadata?.webCommandMetadata.url?.split('v=')[1],
+                    };
+                });
+
+                headerItems.promo = promo;
+            } else if (x.topicChannelDetailsRenderer) {
+                const topicChannelDetailsRenderer = x.topicChannelDetailsRenderer;
+
+                headerItems.title = topicChannelDetailsRenderer?.title?.simpleText;
+                headerItems.avatar = topicChannelDetailsRenderer?.avatar?.thumbnails?.pop();
+                headerItems.subscriber = topicChannelDetailsRenderer?.subtitle?.simpleText;
+            }
+
+            return headerItems;
+        });
+    } else {
+
+
+        headerItems = {
+            title: contentHeader?.title,
+            subtitle: contentHeader?.subscriberCountText?.runs?.map((x) => x.text)?.join(''),
+            avatar: contentHeader?.avatar?.thumbnails[0],
+        }
+
+    }
+
     const results = await page.initData.contents.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content;
 
     let feedResults = [];
@@ -1209,8 +1252,7 @@ export async function getFeed(name) {
     }
 
     return await Promise.resolve({
-        title: contentHeader?.title,
-        avatar: contentHeader?.avatar?.thumbnails[0],
+        ...headerItems,
         items: feedResults,
 
     });
