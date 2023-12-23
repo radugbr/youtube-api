@@ -5,6 +5,7 @@ import playListParser from "./methods/playListParser.js";
 import channelParser from "./methods/channelParser.js";
 import playListVideoItemRender from "./methods/playListVideoItemRender.js";
 import richSessionParse from "./methods/richSessionParse.js";
+import parsePostRenderer from "./methods/parsePostRenderer.js";
 import feedParser from "./methods/feedParser.js";
 import shortVideoParser from "./methods/shortVideoParser.js";
 
@@ -1171,7 +1172,10 @@ export async function getFeed(name) {
 
                     } else if (richItemContent.videoRenderer) {
                         item = parseVideoRender(richItemContent.videoRenderer)
+                    } else if (richItemContent.postRenderer) {
+                        item = parsePostRenderer(richItemContent.postRenderer);
                     }
+
 
                     return item;
 
