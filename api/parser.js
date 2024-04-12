@@ -20,6 +20,7 @@ const config = {
 const YoutubeSearchApi = axios.create(config);
 
 export const GetYoutubeInitData = async (url) => {
+
     let initData = {};
     let playerData = null;
     let apiToken = null;
@@ -48,7 +49,7 @@ export const GetYoutubeInitData = async (url) => {
 
             initData = await JSON.parse(data);
 
-            if (ytPlayerData) {
+            if (ytPlayerData && ytPlayerData.length > 1) {
                 playerData = await JSON.parse(playerResponse);
             }
 
@@ -58,7 +59,7 @@ export const GetYoutubeInitData = async (url) => {
             return await Promise.reject("cannot_get_init_data");
         }
     } catch (ex) {
-        await console.error(ex);
+        console.error(ex);
         return await Promise.reject(ex);
     }
 };
@@ -533,7 +534,7 @@ export const GetVideoDetails = async (videoId) => {
 
         }
 
-        const suggestionContext = await { context: context, continuation: suggestionToken };
+        const suggestionContext = { context: context, continuation: suggestionToken };
 
         const suggestionNextPage = { nextPageToken: apiToken, nextPageContext: suggestionContext }
 
@@ -561,7 +562,6 @@ export const GetVideoDetails = async (videoId) => {
             suggestion: suggestionList,
             suggestionContext: suggestionNextPage,
             isLive,
-            comments: [],
             commentContext: nextPage,
             comments: await getComments(nextPage) ?? [],
         }
@@ -590,60 +590,74 @@ export const getComments = async (nextPage) => {
 
         const commentCounts = commentHeader?.countText?.runs?.map(x => x.text).join('');
 
-        const itemList = page.data?.onResponseReceivedEndpoints[1]?.reloadContinuationItemsCommand;
+        let commentKeys = [];
 
-        if (!itemList.continuationItems) {
+        try {
+            commentKeys = response[1]?.reloadContinuationItemsCommand.continuationItems.filter((x) => x.commentThreadRenderer).map((x) => {
+                const reply = x.commentThreadRenderer.replies || null;
+                const c = x.commentThreadRenderer.commentViewModel.commentViewModel;
+
+                let token = null;
+                if (reply) {
+                    token = reply.commentRepliesRenderer.contents[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
+                }
+
+                return {
+                    id: c.commentId,
+                    replyToken: token,
+                }
+
+            });
+        } catch (error) {
+            console.log(error);
+        }
+
+        const getItemList = page.data?.frameworkUpdates?.entityBatchUpdate?.mutations || null;
+
+        if (!getItemList) {
             return [];
         }
 
-        for (const conitem of itemList.continuationItems) {
+        const itemList = getItemList.filter((x => x.payload.commentEntityPayload));
 
-            const commentThreadRenderer = conitem.commentThreadRenderer;
+        // return itemList;
 
-            if (commentThreadRenderer) {
+        for (const conitem of itemList) {
 
-                const comment = commentThreadRenderer.comment.commentRenderer;
-                const reply = commentThreadRenderer?.replies?.commentRepliesRenderer;
-                const repliesToken = reply?.contents[0]?.continuationItemRenderer
-                    ?.continuationEndpoint?.continuationCommand?.token;
+            const commentThread = conitem.payload.commentEntityPayload;
 
-                let artist = false;
-                if (comment.authorCommentBadge
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer.icon
-                    && ["OFFICIAL_ARTIST_BADGE", "BADGE_STYLE_TYPE_VERIFIED_ARTIST"]
-                        .includes(comment.authorCommentBadge.authorCommentBadgeRenderer.icon.iconType)
-                ) {
-                    artist = true;
-                }
+            if (commentThread) {
 
-                let verified = false;
-                if (comment.authorCommentBadge
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer.icon
-                    && ["CHECK", "CHECK_CIRCLE_THICK"]
-                        .includes(comment.authorCommentBadge.authorCommentBadgeRenderer.icon.iconType)) {
-                    verified = true;
-                }
 
-                const channelUrl = comment.authorText.simpleText;
+
+                const comment = commentThread.properties;
+                const commentStats = commentThread.toolbar;
+
+                const verified = commentThread.author.isVerified;
+                const artist = commentThread.author.isArtist;
+
+                const foundToken = commentKeys.find((x) => x.id === comment.commentId)
+                const repliesToken = foundToken?.replyToken || null;
+
+                const channelUrl = commentThread.author.channelCommand.innertubeCommand.commandMetadata.webCommandMetadata.url?.replace('/', '');
 
                 const channel = {
                     id: channelUrl ? channelUrl?.replace('@', '') : '',
                     title: channelUrl,
                     url: channelUrl ? channelUrl?.replace('@', '/channel/') : '',
-                    avatar: comment.authorThumbnail.thumbnails,
+                    avatar: comment.avatarThumbnailUrl,
                     verified,
                     artist,
                 };
 
                 const commentItem = {
+                    id: comment.commentId,
                     channel,
-                    isOwner: comment.authorIsChannelOwner,
-                    content: comment.contentText?.runs?.map(x => x.text).join(''),
-                    publishedAt: comment.publishedTimeText?.runs?.map(x => x.text).join(''),
-                    likes: comment.voteCount?.simpleText,
-                    replyCount: comment.replyCount,
+                    isOwner: commentThread.author.isCreator,
+                    content: comment.content?.content,
+                    publishedAt: comment.publishedTime,
+                    likes: commentStats.likeCountLiked,
+                    replyCount: commentStats.replyCount,
                     repliesToken,
                 }
 
@@ -670,7 +684,7 @@ export const getComments = async (nextPage) => {
 
         return await Promise.resolve({ text: commentCounts, items, nextPage: nextPage });
     } catch (ex) {
-        await console.error(ex);
+        console.error(ex);
         return await Promise.reject([]);
     }
 };
@@ -710,7 +724,7 @@ export const getMoreSuggestions = async (nextPage) => {
 
         return await Promise.resolve({ items, nextPage: nextPage });
     } catch (ex) {
-        await console.error(ex);
+        console.error(ex);
         return await Promise.reject([]);
     }
 }
@@ -812,84 +826,125 @@ export const getMoreComments = async (nextPage) => {
 
         return await Promise.resolve({ items, nextPage: nextPage });
     } catch (ex) {
-        await console.error(ex);
+        console.error(ex);
         return await Promise.reject([]);
     }
 };
 
 async function getCommentReplies(nextPage) {
     const endpoint = `${youtubeEndpoint}/youtubei/v1/next?key=${nextPage.nextPageToken}`;
-
-    const commentList = []
-
-    const page = await axios.post(
-        encodeURI(endpoint),
-        nextPage.nextPageContext
-    );
-
-    const response = await page.data.onResponseReceivedEndpoints;
+    const items = [];
 
     try {
+        const page = await axios.post(
+            encodeURI(endpoint),
+            nextPage.nextPageContext
+        );
 
-        let artist = false;
-        let verified = false;
-        if (response[0]?.appendContinuationItemsAction &&
-            response[0]?.appendContinuationItemsAction?.continuationItems) {
+        const response = page.data.onResponseReceivedEndpoints;
 
-            const commentListItems = response[0]?.appendContinuationItemsAction?.continuationItems;
+        if (!response) return [];
 
-            commentListItems.forEach((x) => {
+        const commentHeader = response[0]?.reloadContinuationItemsCommand?.continuationItems[0]?.commentsHeaderRenderer;
 
-                const comment = x.commentRenderer;
+        const commentCounts = commentHeader?.countText?.runs?.map(x => x.text).join('');
 
-                if (!comment) return [];
+        const commentKeys = [];
 
-                if (comment.authorCommentBadge
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer.icon
-                    && ["OFFICIAL_ARTIST_BADGE", "BADGE_STYLE_TYPE_VERIFIED_ARTIST"]
-                        .includes(comment.authorCommentBadge.authorCommentBadgeRenderer.icon.iconType)
-                ) {
-                    artist = true;
+        try {
+            response[1]?.reloadContinuationItemsCommand.continuationItems.filter((x) => x.commentThreadRenderer).map((x) => {
+                const reply = x.commentThreadRenderer.replies || null;
+                const c = x.commentThreadRenderer.commentViewModel.commentViewModel;
+
+                let token = null;
+                if (reply) {
+                    token = reply.commentRepliesRenderer.contents[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
                 }
 
-                if (comment.hasOwnProperty('authorCommentBadge')
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer
-                    && comment.authorCommentBadge.authorCommentBadgeRenderer.icon
-                    && ["CHECK", "CHECK_CIRCLE_THICK"]
-                        .includes(comment.authorCommentBadge.authorCommentBadgeRenderer.icon.iconType)) {
-                    verified = true;
-                }
+                commentKeys.push({
+                    id: c.commentId,
+                    replyToken: token,
+                });
 
-                const channelUrl = comment.authorText.simpleText;
+            });
+        } catch (error) {
+            console.log(error);
+        }
+
+        const getItemList = page.data?.frameworkUpdates?.entityBatchUpdate?.mutations || null;
+
+        if (!getItemList) {
+            return [];
+        }
+
+        const itemList = getItemList.filter((x => x.payload.commentEntityPayload));
+
+        // return itemList;
+
+        for (const conitem of itemList) {
+
+            const commentThread = conitem.payload.commentEntityPayload;
+
+            if (commentThread) {
+
+
+
+                const comment = commentThread.properties;
+                const commentStats = commentThread.toolbar;
+
+                const verified = commentThread.author.isVerified;
+                const artist = commentThread.author.isArtist;
+
+                const foundToken = commentKeys.find((x) => x.id === comment.commentId)
+                const repliesToken = foundToken?.replyToken;
+
+                const channelUrl = commentThread.author.channelCommand.innertubeCommand.commandMetadata.webCommandMetadata.url?.replace('/', '');
 
                 const channel = {
                     id: channelUrl ? channelUrl?.replace('@', '') : '',
                     title: channelUrl,
                     url: channelUrl ? channelUrl?.replace('@', '/channel/') : '',
-                    avatar: comment.authorThumbnail.thumbnails,
+                    avatar: comment.avatarThumbnailUrl,
                     verified,
                     artist,
                 };
 
                 const commentItem = {
+                    id: comment.commentId,
                     channel,
-                    isOwner: comment.authorIsChannelOwner,
-                    content: comment.contentText?.runs?.map(x => x.text).join(''),
-                    publishedAt: comment.publishedTimeText?.runs?.map(x => x.text).join(''),
-                    likes: comment.voteCount?.simpleText,
-                    replyCount: comment.replyCount,
+                    isOwner: commentThread.author.isCreator,
+                    content: comment.content?.content,
+                    publishedAt: comment.publishedTime,
+                    likes: commentStats.likeCountLiked,
+                    replyCount: commentStats.replyCount,
+                    repliesToken,
                 }
 
-                commentList.push(commentItem);
+                if (repliesToken) {
 
-            });
+                    const replyContext = {
+                        context: nextPage.nextPageContext.context,
+                        continuation: repliesToken
+                    };
 
+                    const replyNextPage = { nextPageToken: nextPage.nextPageToken, nextPageContext: replyContext }
+
+                    const replies = await getCommentReplies(replyNextPage);
+
+                    commentItem.replies = replies;
+                }
+
+                items.push(commentItem);
+
+            } else if (conitem.continuationItemRenderer) {
+                nextPage.nextPageContext.continuation = conitem.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
+            }
         }
 
-        return Promise.resolve(commentList);
-    } catch (error) {
-        return Promise.reject(error);
+        return await Promise.resolve({ text: commentCounts, items, nextPage: nextPage });
+    } catch (ex) {
+        console.error(ex);
+        return await Promise.reject([]);
     }
 
 }

@@ -85,9 +85,9 @@ app.get('/search', async function (req, res, next) {
  * Get Video details with suggestions
  */
 app.get('/watch/:id', async function (req, res, next) {
+  const videoId = req.params.id;
 
   try {
-    const videoId = req.params.id;
     const video = await GetVideoDetails(videoId);
 
     res.status(200).json(video);
